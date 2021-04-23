@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  
+      <!-- Bootstrap CSS, JS -->
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    
+      <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+      
+      <style>
+        /* Map Styling */
+        #map {
+            height: 400px; 
+            width: 100%; 
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+      </style>
+
+  </head>
+  <body>
+    <h3>Location Finder</h3>
+    <!--The div element for the map -->
+    <div id="map"></div>
+    <script>
+        // Initialize and add the map
+        function initMap() {
+            // default: The location of SIS, SMU
+            var lat = parseFloat(document.getElementById("lat").value);
+            var lng = parseFloat(document.getElementById("lng").value);
+            var loc = {lat: lat, lng: lng};
+
+            // map centered at SIS, SMU
+            var map = new google.maps.Map(
+                document.getElementById('map'), {zoom: 14, center: loc});
+            // marker positioned at SIS, SMU
+            var marker = new google.maps.Marker({position: loc, map: map});
+        }
+    </script>
+    
+    <!-- Calling Google Maps API -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBWsG-xdpSztfcD3RkRjWBosiNDU3o8OuA&callback=initMap">
+    </script>  
+
+    <div class="jumbotron">          
+        <p class="lead text-center">Get Geo Location</p>
+        <form>
+            <div class="form-group">
+                <label for="addr">Enter An Address</label>
+                <input type="text" class="form-control" name="addr" id="addr" placeholder="E.g. Singapore Management University" >
+                <br><button type="button" onclick="getLoc('addr')" class="btn btn-primary">Get Full Address!</button>
+                <button type="button" onclick="getLoc('postcode')" class="btn btn-primary">Get Postal Code!</button>
+                <input type="hidden" id="lat" name="lat" value="1.2973784" />
+                <input type="hidden" id="lng" name="lng" value="103.8495219" />
+            </div>
+            <p id="display" class="lead text-center"></p>   
+        </form>
+    </div>
+
+    <script>
+        function getLoc(action) {
+            var addr = encodeURI(document.getElementById("addr").value);
+            console.log(addr);
+            var url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + addr + "&key=AIzaSyBWsG-xdpSztfcD3RkRjWBosiNDU3o8OuA";
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    // In case of error in address
+                    // try-catch block to handle errors
+                    try { 
+                        // expected response is JSON data
+                        var data = JSON.parse(this.responseText);
+                        console.log(data);
+
+                        var info = '';
+                        if (action == 'postcode') {
+                            // display postal code
+                            info = getPostCode(data);
+                        } else {
+                            // display full address
+                            info = getFullAddress(data);
+                        }
+                        console.log(info);
+                        
+                        document.getElementById("display").innerHTML = info;
+
+                        var coordinate = getLatLng(data);
+                        document.getElementById("lat").value = coordinate["lat"];
+                        document.getElementById("lng").value = coordinate["lng"];
+                        
+                        initMap();
+                    } catch(err) { 
+                        document.getElementById("display").innerHTML = "Sorry, invalid address. Please try again!";
+                    }
+                }
+            };
+            
+            xhttp.open("GET", url, true);
+            xhttp.send();
+        }
+
+        function getFullAddress (data) {
+            var addr = data["results"][0]["formatted_address"];
+            var loc = getLatLng(data);
+            return addr + "<br> lat: " + loc["lat"] + ", lng: " + loc["lng"];
+        }
+
+        function getLatLng(data) {
+            var location= data["results"][0]["geometry"]["location"];
+            return location; 
+        }
+
+        function getPostCode(data) {
+            var addrcomponents = data["results"][0]["address_components"];
+            var postcode = addrcomponents.filter(postcodeHelper);
+            return postcode[0]["long_name"];
+        }
+
+        function postcodeHelper(addr) {  
+            return addr["types"][0] == "postal_code" ;
+        }
+
+
+        function getKeys(data){
+            var keys = Object.keys(data["results"][0]);
+            for (key of keys) {
+                document.getElementById("display").innerHTML += key + "<br>";
+            }
+        }
+
+        function getCountry(data) {
+            var addrcomponents = data["results"][0]["address_components"];
+            var country = addrcomponents.filter(countryHelper);
+            return country[0]["long_name"];
+        }
+
+        function countryHelper(addr, index) {  
+            return addr["types"][0] == "country" ;
+        }
+
+        
+    </script>
+</body>
+</html>
